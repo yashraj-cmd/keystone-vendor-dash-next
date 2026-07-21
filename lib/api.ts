@@ -155,11 +155,27 @@ export const zohoApi = {
    * fetch it as an authenticated blob (a plain link would 401) and open an object URL.
    */
   viewInvoicePdf: async (zohoId: string) => {
-    const res = await api.get(`/zoho/invoices/${zohoId}/pdf`, { responseType: "blob" });
-    const url = URL.createObjectURL(res.data as Blob);
-    window.open(url, "_blank", "noopener,noreferrer");
-    // Revoke after a minute — long enough for the new tab to load the document.
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    // Open the tab synchronously inside the click gesture — if we open it only after
+    // the await below, the browser's popup blocker treats it as non-user-initiated and
+    // silently blocks it (nothing opens). We point the placeholder tab at the PDF once
+    // the authenticated blob has loaded. (No "noopener" here: it makes window.open
+    // return null, and we need the handle to navigate the tab.)
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const res = await api.get(`/zoho/invoices/${zohoId}/pdf`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data as Blob);
+      if (tab && !tab.closed) {
+        tab.location.href = url;
+      } else {
+        // Popup was blocked despite the synchronous open — fall back to same-tab.
+        window.location.href = url;
+      }
+      // Revoke after a minute — long enough for the tab to load the document.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      if (tab && !tab.closed) tab.close();
+      throw err;
+    }
   },
   createPurchaseOrder: (input: CreatePurchaseOrderInput) =>
     api.post<CreatePurchaseOrderResult>("/zoho/purchase-orders", input).then((r) => r.data),
