@@ -1,11 +1,10 @@
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   VENDOR_CATEGORY_LABELS,
   VendorCategory,
   VendorStage,
 } from "@shared";
-import { driveApi, vendorsApi, VendorQuery } from "@/lib/api";
+import { vendorsApi, VendorQuery } from "@/lib/api";
 import { apiError } from "@/lib/api-client";
 
 interface Props {
@@ -22,19 +21,6 @@ const STAGE_LABELS: Record<VendorStage, string> = {
 };
 
 export function Toolbar({ query, onQueryChange, onAddVendor, onGeneratePo }: Props) {
-  const qc = useQueryClient();
-
-  const syncMutation = useMutation({
-    mutationFn: () => driveApi.sync(),
-    onSuccess: (res) => {
-      toast.success(
-        `Sync done — attached ${res.attached}, unassigned ${res.unassigned}, skipped ${res.skipped}.`,
-      );
-      qc.invalidateQueries();
-    },
-    onError: (err) => toast.error(apiError(err, "Drive sync failed")),
-  });
-
   async function onExport() {
     try {
       const csv = await vendorsApi.exportCsv();
@@ -83,9 +69,6 @@ export function Toolbar({ query, onQueryChange, onAddVendor, onGeneratePo }: Pro
         ))}
       </select>
       <div className="flex-1" />
-      <button className="btn" onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending}>
-        ⟳ {syncMutation.isPending ? "Syncing…" : "Sync Drive"}
-      </button>
       <button className="btn" onClick={onExport}>
         Export CSV
       </button>

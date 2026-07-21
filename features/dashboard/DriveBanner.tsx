@@ -18,6 +18,17 @@ export function DriveBanner() {
     queryFn: driveApi.unassigned,
   });
 
+  const sync = useMutation({
+    mutationFn: () => driveApi.sync(),
+    onSuccess: (res) => {
+      toast.success(
+        `Sync done — attached ${res.attached}, unassigned ${res.unassigned}, skipped ${res.skipped}.`,
+      );
+      qc.invalidateQueries();
+    },
+    onError: (err) => toast.error(apiError(err, "Drive sync failed")),
+  });
+
   const dotClass = status?.enabled ? "bg-keystone-green" : "bg-keystone-amber";
   const title = !status
     ? "Checking Google Drive…"
@@ -37,16 +48,21 @@ export function DriveBanner() {
             vendor automatically. (Invoices come from Zoho or manual entry, not Drive.)
           </p>
         </div>
-        {status?.folderUrl && (
-          <a
-            className="text-orange-deep font-semibold text-sm whitespace-nowrap"
-            href={status.folderUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open Drive folder ↗
-          </a>
-        )}
+        <div className="flex items-center gap-3 whitespace-nowrap">
+          {status?.folderUrl && (
+            <a
+              className="text-orange-deep font-semibold text-sm"
+              href={status.folderUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Drive folder ↗
+            </a>
+          )}
+          <button className="btn" onClick={() => sync.mutate()} disabled={sync.isPending}>
+            ⟳ {sync.isPending ? "Syncing…" : "Sync Drive"}
+          </button>
+        </div>
       </div>
       {unassigned.length > 0 && (
         <div className="mt-3 pt-3 border-t border-orange/30">
