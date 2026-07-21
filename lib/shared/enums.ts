@@ -11,6 +11,20 @@ export const VENDOR_STAGE_ORDER: VendorStage[] = [
   VendorStage.PURCHASE_MADE,
 ];
 
+/** Plain-language stage names shown in the UI (avoids raw enum jargon). */
+export const VENDOR_STAGE_LABELS: Record<VendorStage, string> = {
+  IN_TALKS: "In Discussion",
+  CATALOGUE_RECEIVED: "Catalogue Received",
+  PURCHASE_MADE: "Purchased",
+};
+
+/** One-line explanation of what each stage means, for tooltips/hints. */
+export const VENDOR_STAGE_HINTS: Record<VendorStage, string> = {
+  IN_TALKS: "Talking to the vendor — no catalogue yet.",
+  CATALOGUE_RECEIVED: "Catalogue received — ready to raise a purchase order.",
+  PURCHASE_MADE: "A purchase has been made from this vendor.",
+};
+
 export const VendorStatus = {
   ACTIVE: "ACTIVE",
   ON_HOLD: "ON_HOLD",

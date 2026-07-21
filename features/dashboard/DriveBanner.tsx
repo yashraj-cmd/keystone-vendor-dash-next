@@ -54,7 +54,8 @@ export function DriveBanner() {
             className="text-sm font-medium text-rust-dark"
             onClick={() => setExpanded((v) => !v)}
           >
-            {unassigned.length} unassigned file(s) need review {expanded ? "▲" : "▼"}
+            {unassigned.length} catalogue file(s) need to be linked to a vendor{" "}
+            {expanded ? "▲" : "▼"}
           </button>
           {expanded && (
             <div className="mt-3 space-y-2">

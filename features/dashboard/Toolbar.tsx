@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   VENDOR_CATEGORY_LABELS,
+  VENDOR_STAGE_LABELS,
   VendorCategory,
   VendorStage,
 } from "@shared";
@@ -14,12 +15,6 @@ interface Props {
   onAddVendor: () => void;
   onGeneratePo: () => void;
 }
-
-const STAGE_LABELS: Record<VendorStage, string> = {
-  IN_TALKS: "In Talks",
-  CATALOGUE_RECEIVED: "Catalogue Received",
-  PURCHASE_MADE: "Purchase Made",
-};
 
 export function Toolbar({ query, onQueryChange, onAddVendor, onGeneratePo }: Props) {
   const qc = useQueryClient();
@@ -76,9 +71,9 @@ export function Toolbar({ query, onQueryChange, onAddVendor, onGeneratePo }: Pro
         onChange={(e) => onQueryChange({ stage: (e.target.value || "") as VendorStage | "" })}
       >
         <option value="">All Stages</option>
-        {(Object.keys(STAGE_LABELS) as VendorStage[]).map((s) => (
+        {(Object.keys(VENDOR_STAGE_LABELS) as VendorStage[]).map((s) => (
           <option key={s} value={s}>
-            {STAGE_LABELS[s]}
+            {VENDOR_STAGE_LABELS[s]}
           </option>
         ))}
       </select>
