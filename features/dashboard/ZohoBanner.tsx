@@ -78,7 +78,7 @@ export function ZohoBanner() {
             className="text-sm font-medium text-rust-dark"
             onClick={() => setExpanded((v) => !v)}
           >
-            {unmatched.length} invoice(s) need to be linked to a vendor {expanded ? "▲" : "▼"}
+            {unmatched.length} unmatched invoice(s) need a vendor {expanded ? "▲" : "▼"}
           </button>
           {expanded && (
             <div className="mt-3 space-y-2">

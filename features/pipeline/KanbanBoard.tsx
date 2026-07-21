@@ -2,8 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   VENDOR_CATEGORY_LABELS,
-  VENDOR_STAGE_HINTS,
-  VENDOR_STAGE_LABELS,
   VendorDto,
   VendorStage,
 } from "@shared";
@@ -16,6 +14,12 @@ interface Props {
   onOpenVendor: (id: string) => void;
 }
 
+const STAGE_LABELS: Record<VendorStage, string> = {
+  IN_TALKS: "In Talks",
+  CATALOGUE_RECEIVED: "Catalogue Received",
+  PURCHASE_MADE: "Purchase Made",
+};
+
 const STAGES: VendorStage[] = ["IN_TALKS", "CATALOGUE_RECEIVED", "PURCHASE_MADE"];
 
 export function KanbanBoard({ vendors, onOpenVendor }: Props) {
@@ -26,35 +30,22 @@ export function KanbanBoard({ vendors, onOpenVendor }: Props) {
   };
   for (const v of vendors) grouped[v.stage].push(v);
 
-  const hasAny = vendors.length > 0;
-
   return (
     <section>
-      <div className="flex items-baseline gap-3 mb-1">
-        <h2 className="text-lg font-bold">Vendor Progress</h2>
-        <p className="text-xs text-muted">Where each vendor is in the process</p>
+      <div className="flex items-baseline gap-3 mb-3">
+        <h2 className="text-lg font-bold">Procurement Pipeline</h2>
+        <p className="text-xs text-muted">Click a card to open full vendor detail</p>
       </div>
-      <p className="text-xs text-muted mb-3">
-        Vendors move left → right: <b>In Discussion</b> → <b>Catalogue Received</b> →{" "}
-        <b>Purchased</b>. Click a card to open the vendor; use the buttons to move them along.
-      </p>
-      {!hasAny ? (
-        <div className="card p-8 text-center text-sm text-muted">
-          No vendors yet. Click <b>“+ Add Vendor”</b> above to add your first one — it’ll appear
-          here under <b>In Discussion</b>.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {STAGES.map((stage) => (
-            <Column
-              key={stage}
-              stage={stage}
-              vendors={grouped[stage]}
-              onOpenVendor={onOpenVendor}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {STAGES.map((stage) => (
+          <Column
+            key={stage}
+            stage={stage}
+            vendors={grouped[stage]}
+            onOpenVendor={onOpenVendor}
+          />
+        ))}
+      </div>
     </section>
   );
 }
@@ -70,13 +61,10 @@ function Column({
 }) {
   return (
     <div className="card p-3">
-      <div className="flex items-center justify-between mb-1 px-1">
-        <h3 className="font-semibold" title={VENDOR_STAGE_HINTS[stage]}>
-          {VENDOR_STAGE_LABELS[stage]}
-        </h3>
+      <div className="flex items-center justify-between mb-3 px-1">
+        <h3 className="font-semibold">{STAGE_LABELS[stage]}</h3>
         <span className="chip bg-orange-light text-orange-deep">{vendors.length}</span>
       </div>
-      <p className="text-[11px] text-muted mb-2 px-1">{VENDOR_STAGE_HINTS[stage]}</p>
       <div className="space-y-2">
         {vendors.length === 0 && (
           <div className="text-xs text-muted p-4 text-center border border-dashed border-border rounded-keystone">

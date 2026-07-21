@@ -19,8 +19,6 @@ import { Modal } from "@/components/Modal";
 import { VendorForm } from "@/features/vendors/VendorForm";
 import { GeneratePoModal } from "@/features/zoho/GeneratePoModal";
 import { PurchaseOrdersPanel } from "@/features/purchase-orders/PurchaseOrdersPanel";
-import { QuickActions } from "./QuickActions";
-import { CollapsibleSection } from "./CollapsibleSection";
 import { dashboardApi, vendorsApi, VendorQuery } from "@/lib/api";
 
 export function DashboardPage() {
@@ -46,47 +44,26 @@ export function DashboardPage() {
     <div className="min-h-full flex flex-col">
       <Header />
       <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 py-6 space-y-5">
-        {/* Guided starting point + the two main actions. */}
-        <QuickActions
+        <Toolbar
+          query={query}
+          onQueryChange={(p) => setQuery((q) => ({ ...q, ...p }))}
           onAddVendor={() => setCreatingVendor(true)}
           onGeneratePo={() => setGeneratingPo(true)}
-          vendorCount={total}
         />
-
-        {/* Key numbers at a glance. */}
-        {stats && <StatCards stats={stats} />}
-
-        {/* Anything from Zoho/Drive that needs a person to sort out shows here. */}
         <ZohoBanner />
         <DriveBanner />
-
-        {/* Day-to-day work: approvals, the pipeline, and the vendor list. */}
-        <PurchaseOrdersPanel />
-
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <Toolbar
-              query={query}
-              onQueryChange={(p) => setQuery((q) => ({ ...q, ...p }))}
-              onAddVendor={() => setCreatingVendor(true)}
-              onGeneratePo={() => setGeneratingPo(true)}
-            />
-          </div>
-          <KanbanBoard vendors={vendors} onOpenVendor={setOpenVendorId} />
-          <VendorsTable vendors={vendors} total={total} onOpenVendor={setOpenVendorId} />
-        </div>
-
-        {/* Charts are useful but not day-to-day — tucked away, collapsed by default. */}
+        {stats && <StatCards stats={stats} />}
         {stats && (
-          <CollapsibleSection title="Insights" subtitle="Charts &amp; analytics">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <PipelineChart stats={stats} />
-              <CategoryValueChart stats={stats} />
-              <InvoiceStatusChart stats={stats} />
-              <TopVendorsChart stats={stats} />
-            </div>
-          </CollapsibleSection>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PipelineChart stats={stats} />
+            <CategoryValueChart stats={stats} />
+            <InvoiceStatusChart stats={stats} />
+            <TopVendorsChart stats={stats} />
+          </div>
         )}
+        <PurchaseOrdersPanel />
+        <KanbanBoard vendors={vendors} onOpenVendor={setOpenVendorId} />
+        <VendorsTable vendors={vendors} total={total} onOpenVendor={setOpenVendorId} />
       </main>
       <Footer />
 

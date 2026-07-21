@@ -8,13 +8,19 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { VENDOR_CATEGORY_LABELS, VENDOR_STAGE_LABELS, VendorDto, VendorStage } from "@shared";
+import { VENDOR_CATEGORY_LABELS, VendorDto, VendorStage } from "@shared";
 import { formatInr, formatDate } from "@/lib/format";
 
 const STAGE_CHIP: Record<VendorStage, string> = {
   IN_TALKS: "bg-keystone-blue/10 text-keystone-blue",
   CATALOGUE_RECEIVED: "bg-orange/15 text-orange-deep",
   PURCHASE_MADE: "bg-keystone-green/10 text-keystone-green",
+};
+
+const STAGE_LABEL: Record<VendorStage, string> = {
+  IN_TALKS: "In Talks",
+  CATALOGUE_RECEIVED: "Catalogue Received",
+  PURCHASE_MADE: "Purchase Made",
 };
 
 interface Props {
@@ -39,7 +45,7 @@ export function VendorsTable({ vendors, total, onOpenVendor }: Props) {
         header: "Stage",
         cell: (info) => {
           const stage = info.getValue<VendorStage>();
-          return <span className={`chip ${STAGE_CHIP[stage]}`}>{VENDOR_STAGE_LABELS[stage]}</span>;
+          return <span className={`chip ${STAGE_CHIP[stage]}`}>{STAGE_LABEL[stage]}</span>;
         },
       },
       { accessorKey: "contactName", header: "Contact", cell: (info) => info.getValue() ?? "—" },
@@ -81,11 +87,7 @@ export function VendorsTable({ vendors, total, onOpenVendor }: Props) {
         </p>
       </div>
       {vendors.length === 0 ? (
-        <div className="p-12 text-center text-sm text-muted">
-          {total === 0
-            ? "No vendors yet — click “+ Add Vendor” to add your first one."
-            : "No vendors match your search or filters. Try clearing them."}
-        </div>
+        <div className="p-12 text-center text-sm text-muted">No vendors match your filters.</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
