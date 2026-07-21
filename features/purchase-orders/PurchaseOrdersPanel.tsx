@@ -96,6 +96,8 @@ export function PurchaseOrdersPanel() {
   const role = useAuthStore((s) => s.user?.role);
   const isAdmin = role === "ADMIN";
   const [viewing, setViewing] = useState<PurchaseOrderDto | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const VISIBLE_LIMIT = 5;
 
   const { data: pos = [] } = useQuery({
     queryKey: ["purchase-orders"],
@@ -133,8 +135,12 @@ export function PurchaseOrdersPanel() {
           {pendingCount} awaiting approval{isAdmin ? "" : " · Admin approves"}
         </p>
       </div>
-      <ul className="divide-y divide-border">
-        {pos.map((po) => (
+      <ul
+        className={`divide-y divide-border ${
+          showAll && pos.length > VISIBLE_LIMIT ? "max-h-[460px] overflow-y-auto" : ""
+        }`}
+      >
+        {(showAll ? pos : pos.slice(0, VISIBLE_LIMIT)).map((po) => (
           <PoRow
             key={po.id}
             po={po}
@@ -146,6 +152,13 @@ export function PurchaseOrdersPanel() {
           />
         ))}
       </ul>
+      {pos.length > VISIBLE_LIMIT && (
+        <div className="p-3 border-t border-border text-center">
+          <button className="btn py-1" onClick={() => setShowAll((v) => !v)}>
+            {showAll ? "Show less ▲" : `Show all ${pos.length} orders ▼`}
+          </button>
+        </div>
+      )}
       {viewing && <PoDetailModal po={viewing} onClose={() => setViewing(null)} />}
     </section>
   );
@@ -193,7 +206,7 @@ function PoRow({
 
         {!rejecting && (
           <div className="flex gap-2">
-            <button className="btn py-1" onClick={onView}>
+            <button className="btn-primary py-1" onClick={onView}>
               View
             </button>
             {isAdmin && po.status === "PENDING" && (
