@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  PROCUREMENT_MEMBER
+  VIEWER
+}
+
+enum VendorStage {
+  IN_TALKS
+  CATALOGUE_RECEIVED
+  PURCHASE_MADE
+}
+
+enum VendorStatus {
+  ACTIVE
+  ON_HOLD
+  BLACKLISTED
+}
+
+enum VendorCategory {
+  RAW_MATERIALS
+  LOGISTICS
+  IT_SERVICES
+  PACKAGING
+  CONSULTING
+  OFFICE_SUPPLIES
+  MARKETING
+}
+
+enum InvoiceStatus {
+  PAID
+  UNPAID
+  OVERDUE
+}
+
+enum DocumentSource {
+  MANUAL_UPLOAD
+  DRIVE_SYNC
+  ZOHO_SYNC
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(PROCUREMENT_MEMBER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model Vendor {
+  id             String         @id @default(uuid())
+  name           String
+  category       VendorCategory
+  stage          VendorStage    @default(IN_TALKS)
+  status         VendorStatus   @default(ACTIVE)
+  contactName    String?
+  phone          String?
+  email          String?
+  contractValue  Int            @default(0)
+  rating         Int            @default(0)
+  contractStart  DateTime?
+  contractEnd    DateTime?
+  zohoVendorId   String?        @unique
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  catalogues      Catalogue[]
+  invoices        Invoice[]
+  fileAssignments FileAssignment[]
+  purchaseOrders  PurchaseOrder[]
+
+  @@index([stage])
+  @@index([status])
+  @@index([category])
+  @@index([contractEnd])
+  @@map("vendors")
+}
+
+model Catalogue {
+  id          String         @id @default(uuid())
+  vendorId    String
+  vendor      Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  title       String
+  driveFileId String?        @unique
+  viewUrl     String?
+  uploadedAt  DateTime       @default(now())
+  source      DocumentSource @default(MANUAL_UPLOAD)
+  createdAt   DateTime       @default(now())
+
+  items CatalogueItem[]
+
+  @@index([vendorId])
+  @@map("catalogues")
+}
+
+/// A single product line inside a catalogue. unitPrice is integer paise (₹1 = 100).
+model CatalogueItem {
+  id          String    @id @default(uuid())
+  catalogueId String
+  catalogue   Catalogue @relation(fields: [catalogueId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  unitPrice   Int       @default(0)
+  unit        String?
+  hsn         String?
+  createdAt   DateTime  @default(now())
+
+  @@index([catalogueId])
+  @@map("catalogue_items")
+}
+
+model Invoice {
+  id             String         @id @default(uuid())
+  vendorId       String
+  vendor         Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  invoiceNumber  String
+  amount         Int            @default(0)
+  invoiceDate    DateTime       @default(now())
+  dueDate        DateTime?
+  status         InvoiceStatus  @default(UNPAID)
+  driveFileId    String?        @unique
+  zohoId         String?        @unique
+  viewUrl        String?
+  source         DocumentSource @default(MANUAL_UPLOAD)
+  externalId     String?
+  externalSource String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("invoices")
+}
+
+/// A purchase order raised in the dashboard. Approval happens here (app-owned);
+/// on approval it is pushed to Zoho Books. lineItems is JSON [{name, quantity, rate, hsn}]
+/// with rate/total in rupees (Zoho's unit).
+model PurchaseOrder {
+  id             String              @id @default(uuid())
+  vendorId       String
+  vendor         Vendor              @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  zohoVendorId   String?
+  status         PurchaseOrderStatus @default(PENDING)
+  lineItems      Json
+  total          Float               @default(0)
+  poNumber       String?
+  zohoId         String?
+  createdById    String?
+  decidedById    String?
+  decisionReason String?
+  decidedAt      DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("purchase_orders")
+}
+
+/// Zoho invoices/bills that couldn't be matched to a vendor during sync — held here
+/// (in the DB, not memory, so it survives serverless) until a human assigns them.
+model ZohoUnmatchedInvoice {
+  id            String        @id @default(uuid())
+  zohoId        String        @unique
+  invoiceNumber String
+  vendorName    String
+  zohoVendorId  String?
+  amount        Int           @default(0)
+  status        InvoiceStatus @default(UNPAID)
+  invoiceDate   DateTime      @default(now())
+  dueDate       DateTime?
+  viewUrl       String?
+  createdAt     DateTime      @default(now())
+
+  @@map("zoho_unmatched_invoices")
+}
+
+/// Drive catalogue files that couldn't be matched to a vendor during sync — held in
+/// the DB (not memory, so it survives serverless) until a human assigns them.
+model DriveUnassignedFile {
+  id           String   @id @default(uuid())
+  fileId       String   @unique
+  name         String
+  kind         String   @default("catalogue")
+  vendorToken  String
+  webViewLink  String?
+  modifiedTime DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@map("drive_unassigned_files")
+}
+
+/// Remembers a manual match from a normalized Drive filename token to a vendor,
+/// so future files from the same unrecognised sender auto-link.
+model FileAssignment {
+  id              String @id @default(uuid())
+  normalizedToken String @unique
+  vendorId        String
+  vendor          Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("file_assignments")
+}
+
+/// Drive files the team dismissed from the unassigned list.
+model IgnoredFile {
+  id          String   @id @default(uuid())
+  driveFileId String   @unique
+  createdAt   DateTime @default(now())
+
+  @@map("ignored_files")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

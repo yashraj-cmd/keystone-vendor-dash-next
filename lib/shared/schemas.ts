@@ -1,0 +1,81 @@
+import { z } from "zod";
+import { InvoiceStatus, UserRole, VendorCategory, VendorStatus } from "./enums";
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export const createUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1),
+  role: z.nativeEnum(UserRole),
+});
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+
+export const updateUserSchema = createUserSchema.partial();
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+export const vendorCategoryValues = Object.values(VendorCategory) as [string, ...string[]];
+export const vendorStatusValues = Object.values(VendorStatus) as [string, ...string[]];
+
+export const createVendorSchema = z.object({
+  name: z.string().min(1, "Vendor name is required"),
+  category: z.nativeEnum(VendorCategory),
+  status: z.nativeEnum(VendorStatus).default(VendorStatus.ACTIVE),
+  contactName: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal("")),
+  contractValue: z.number().int().min(0, "Contract value cannot be negative"),
+  rating: z.number().int().min(0).max(5).default(0),
+  contractStart: z.string().optional().nullable(),
+  contractEnd: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+export type CreateVendorInput = z.infer<typeof createVendorSchema>;
+
+export const updateVendorSchema = createVendorSchema.partial();
+export type UpdateVendorInput = z.infer<typeof updateVendorSchema>;
+
+export const stageTransitionSchema = z
+  .object({
+    direction: z.enum(["advance", "back"]).optional(),
+    targetStage: z.string().optional(),
+  })
+  .refine((v) => v.direction || v.targetStage, {
+    message: "Either direction or targetStage must be provided",
+  });
+export type StageTransitionInput = z.infer<typeof stageTransitionSchema>;
+
+export const createCatalogueSchema = z.object({
+  title: z.string().min(1),
+  driveFileId: z.string().optional().nullable(),
+  viewUrl: z.string().url().optional().nullable().or(z.literal("")),
+  uploadedAt: z.string().optional(),
+});
+export type CreateCatalogueInput = z.infer<typeof createCatalogueSchema>;
+
+export const createInvoiceSchema = z.object({
+  invoiceNumber: z.string().min(1),
+  amount: z.number().int().min(0),
+  invoiceDate: z.string().optional(),
+  status: z.nativeEnum(InvoiceStatus).default(InvoiceStatus.UNPAID),
+  driveFileId: z.string().optional().nullable(),
+  viewUrl: z.string().url().optional().nullable().or(z.literal("")),
+});
+export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
+
+export const updateInvoiceSchema = z.object({
+  invoiceNumber: z.string().min(1).optional(),
+  amount: z.number().int().min(0).optional(),
+  invoiceDate: z.string().optional(),
+  status: z.nativeEnum(InvoiceStatus).optional(),
+});
+export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
+
+export const assignFileSchema = z.object({
+  vendorId: z.string().uuid(),
+});
+export type AssignFileInput = z.infer<typeof assignFileSchema>;

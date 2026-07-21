@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+.env
+.env*.local
+*.log
+.DS_Store
+next-env.d.ts
+*.tsbuildinfo
+generated/
+# secrets
+service-account.json
+*.iam.gserviceaccount.com.json

@@ -1,0 +1,238 @@
+import type {
+  CatalogueDto,
+  InvoiceDto,
+  PaginatedResult,
+  UserDto,
+  VendorDto,
+  VendorStage,
+  VendorStatus,
+  VendorCategory,
+  InvoiceStatus,
+  ZohoStatusDto,
+  ZohoSyncResultDto,
+  ZohoUnmatchedInvoiceDto,
+  PurchaseOrderDto,
+  PurchaseOrderStatus,
+} from "@shared";
+import { api } from "./api-client";
+
+// ── auth ──────────────────────────────────────────────────────────────────────
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: UserDto;
+}
+export const authApi = {
+  login: (email: string, password: string) =>
+    api.post<LoginResponse>("/auth/login", { email, password }).then((r) => r.data),
+  me: () => api.get<UserDto>("/auth/me").then((r) => r.data),
+  logout: (refreshToken: string) => api.post("/auth/logout", { refreshToken }),
+};
+
+// ── vendors ───────────────────────────────────────────────────────────────────
+export interface VendorQuery {
+  search?: string;
+  category?: VendorCategory | "";
+  stage?: VendorStage | "";
+  status?: VendorStatus | "";
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+}
+export interface CreateVendorInput {
+  name: string;
+  category: VendorCategory;
+  status?: VendorStatus;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  contractValue?: number; // paise
+  rating?: number;
+  contractStart?: string;
+  contractEnd?: string;
+  notes?: string;
+}
+export type UpdateVendorInput = Partial<CreateVendorInput>;
+
+export const vendorsApi = {
+  list: (q: VendorQuery = {}) =>
+    api
+      .get<PaginatedResult<VendorDto>>("/vendors", {
+        params: Object.fromEntries(
+          Object.entries(q).filter(([, v]) => v !== undefined && v !== ""),
+        ),
+      })
+      .then((r) => r.data),
+  get: (id: string) => api.get<VendorDto>(`/vendors/${id}`).then((r) => r.data),
+  create: (input: CreateVendorInput) => api.post<VendorDto>("/vendors", input).then((r) => r.data),
+  update: (id: string, input: UpdateVendorInput) =>
+    api.patch<VendorDto>(`/vendors/${id}`, input).then((r) => r.data),
+  remove: (id: string) => api.delete(`/vendors/${id}`),
+  transition: (id: string, body: { direction?: "advance" | "back"; targetStage?: VendorStage }) =>
+    api.post<VendorDto>(`/vendors/${id}/stage`, body).then((r) => r.data),
+  setZohoLink: (id: string, zohoVendorId: string | null) =>
+    api.patch<VendorDto>(`/vendors/${id}/zoho-link`, { zohoVendorId }).then((r) => r.data),
+  exportCsv: () => api.get<string>("/vendors/export.csv", { responseType: "text" }).then((r) => r.data),
+};
+
+// ── catalogues ────────────────────────────────────────────────────────────────
+export interface CatalogueItemInput {
+  name: string;
+  description?: string;
+  unitPrice: number; // paise
+  unit?: string;
+  hsn?: string;
+}
+export const cataloguesApi = {
+  attach: (
+    vendorId: string,
+    input: {
+      title: string;
+      driveFileId?: string;
+      viewUrl?: string;
+      uploadedAt?: string;
+      items?: CatalogueItemInput[];
+    },
+  ) => api.post<CatalogueDto>(`/vendors/${vendorId}/catalogues`, input).then((r) => r.data),
+  remove: (id: string) => api.delete(`/catalogues/${id}`),
+  addItem: (catalogueId: string, input: CatalogueItemInput) =>
+    api.post(`/catalogues/${catalogueId}/items`, input).then((r) => r.data),
+  removeItem: (itemId: string) => api.delete(`/catalogue-items/${itemId}`),
+};
+
+// ── invoices ──────────────────────────────────────────────────────────────────
+export const invoicesApi = {
+  attach: (
+    vendorId: string,
+    input: {
+      invoiceNumber: string;
+      amount: number; // paise
+      invoiceDate?: string;
+      status?: InvoiceStatus;
+      driveFileId?: string;
+      viewUrl?: string;
+    },
+  ) => api.post<InvoiceDto>(`/vendors/${vendorId}/invoices`, input).then((r) => r.data),
+  update: (
+    id: string,
+    input: { invoiceNumber?: string; amount?: number; invoiceDate?: string; status?: InvoiceStatus },
+  ) => api.patch<InvoiceDto>(`/invoices/${id}`, input).then((r) => r.data),
+  remove: (id: string) => api.delete(`/invoices/${id}`),
+};
+
+// ── drive ─────────────────────────────────────────────────────────────────────
+export interface UnassignedFile {
+  fileId: string;
+  name: string;
+  kind: "catalogue" | "invoice";
+  vendorToken: string;
+  webViewLink: string | null;
+  modifiedTime: string;
+}
+export const driveApi = {
+  sync: () =>
+    api
+      .post<{ attached: number; unassigned: number; skipped: number; errors: number }>("/drive/sync")
+      .then((r) => r.data),
+  unassigned: () => api.get<UnassignedFile[]>("/drive/unassigned").then((r) => r.data),
+  assign: (fileId: string, vendorId: string) =>
+    api.post(`/drive/unassigned/${fileId}/assign`, { vendorId }),
+  ignore: (fileId: string) => api.post(`/drive/unassigned/${fileId}/ignore`),
+  status: () =>
+    api.get<{ enabled: boolean; folderUrl: string | null }>("/drive/status").then((r) => r.data),
+};
+
+// ── zoho ──────────────────────────────────────────────────────────────────────
+export const zohoApi = {
+  sync: () => api.post<ZohoSyncResultDto>("/zoho/sync").then((r) => r.data),
+  status: () => api.get<ZohoStatusDto>("/zoho/status").then((r) => r.data),
+  unmatched: () => api.get<ZohoUnmatchedInvoiceDto[]>("/zoho/unmatched").then((r) => r.data),
+  assign: (zohoId: string, vendorId: string) =>
+    api.post(`/zoho/unmatched/${zohoId}/assign`, { vendorId }),
+  /**
+   * Open a Zoho invoice PDF inline in a new tab. The endpoint is JWT-protected, so we
+   * fetch it as an authenticated blob (a plain link would 401) and open an object URL.
+   */
+  viewInvoicePdf: async (zohoId: string) => {
+    const res = await api.get(`/zoho/invoices/${zohoId}/pdf`, { responseType: "blob" });
+    const url = URL.createObjectURL(res.data as Blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    // Revoke after a minute — long enough for the new tab to load the document.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
+  createPurchaseOrder: (input: CreatePurchaseOrderInput) =>
+    api.post<CreatePurchaseOrderResult>("/zoho/purchase-orders", input).then((r) => r.data),
+  vendors: () =>
+    api.get<{ id: string; name: string }[]>("/zoho/vendors").then((r) => r.data),
+  /** Create a matching Zoho vendor for a dashboard vendor and save its id. */
+  createAndLinkVendor: (vendorId: string) =>
+    api
+      .post<{ vendorId: string; zohoVendorId: string; alreadyLinked: boolean }>(
+        "/zoho/vendors/link",
+        { vendorId },
+      )
+      .then((r) => r.data),
+};
+
+export interface PoLineItemInput {
+  name: string;
+  quantity: number;
+  rate: number; // rupees
+  hsn?: string;
+}
+export interface CreatePurchaseOrderInput {
+  vendorId: string; // Zoho vendor id
+  poNumber?: string;
+  date?: string;
+  lineItems: PoLineItemInput[];
+  emailTo?: string[];
+}
+export interface CreatePurchaseOrderResult {
+  zohoId: string;
+  poNumber: string;
+  total: number;
+  status: string;
+  emailed?: boolean;
+  emailWarning?: string;
+}
+
+// ── purchase orders (approval workflow) ────────────────────────────────────────
+export interface CreatePoInput {
+  vendorId: string; // dashboard vendor id
+  poNumber?: string;
+  lineItems: { name: string; quantity: number; rate: number; hsn?: string }[];
+}
+export const purchaseOrdersApi = {
+  list: (status?: PurchaseOrderStatus) =>
+    api
+      .get<PurchaseOrderDto[]>("/purchase-orders", { params: status ? { status } : {} })
+      .then((r) => r.data),
+  create: (input: CreatePoInput) =>
+    api.post<PurchaseOrderDto>("/purchase-orders", input).then((r) => r.data),
+  approve: (id: string) =>
+    api.post<PurchaseOrderDto>(`/purchase-orders/${id}/approve`).then((r) => r.data),
+  reject: (id: string, reason: string) =>
+    api.post<PurchaseOrderDto>(`/purchase-orders/${id}/reject`, { reason }).then((r) => r.data),
+};
+
+// ── dashboard ─────────────────────────────────────────────────────────────────
+export interface DashboardStats {
+  totals: {
+    totalVendors: number;
+    purchaseMade: number;
+    totalContractValue: number;
+    invoicedPaid: number;
+    paidInvoiceCount: number;
+    outstanding: number;
+    contractsExpiring: number;
+    totalInvoices: number;
+  };
+  pipeline: Record<VendorStage, number>;
+  contractValueByCategory: { category: VendorCategory; value: number }[];
+  invoiceStatus: Record<InvoiceStatus, number>;
+  topVendors: { id: string; name: string; contractValue: number }[];
+}
+export const dashboardApi = {
+  stats: () => api.get<DashboardStats>("/dashboard/stats").then((r) => r.data),
+};
