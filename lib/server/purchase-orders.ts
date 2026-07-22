@@ -25,7 +25,19 @@ function serialize(po: any) {
   };
 }
 
-const appUrl = () => process.env.APP_URL ?? "http://localhost:3000";
+/**
+ * Base URL used in emails. Prefers an explicit APP_URL, but ignores a localhost
+ * value when actually running on Vercel (a common copy-paste from local .env) and
+ * falls back to the real deployment URL Vercel injects.
+ */
+const appUrl = () => {
+  const configured = process.env.APP_URL?.trim();
+  const onVercel = Boolean(process.env.VERCEL);
+  if (configured && !(onVercel && configured.includes("localhost"))) return configured;
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (prod) return `https://${prod}`;
+  return "http://localhost:3000";
+};
 
 /** Email the member who submitted a PO once it's decided (soft — never throws). */
 async function notifyCreator(createdById: string | null, subject: string, text: string) {
