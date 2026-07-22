@@ -1,23 +1,55 @@
 import nodemailer, { Transporter } from "nodemailer";
 
-// One transporter per process. Sends real email when SMTP_HOST is set; otherwise
-// logs the message (dev mode) so flows work without SMTP.
+// One transporter per process. Preference order:
+//   1. Gmail OAuth2  (GMAIL_OAUTH_* set)  — used for OTP codes AND PO notifications
+//   2. SMTP          (SMTP_HOST set)      — the legacy app-password path (fallback)
+//   3. none          — dev mode: log the message so flows still work without email
 let transporter: Transporter | null | undefined;
+let fromAddress = "Keystone Procurement";
+
+function gmailConfigured(): boolean {
+  return Boolean(
+    process.env.GMAIL_OAUTH_CLIENT_ID &&
+      process.env.GMAIL_OAUTH_CLIENT_SECRET &&
+      process.env.GMAIL_OAUTH_REFRESH_TOKEN &&
+      process.env.GMAIL_SENDER_EMAIL,
+  );
+}
 
 function getTransporter(): Transporter | null {
   if (transporter !== undefined) return transporter;
-  const host = process.env.SMTP_HOST;
-  if (!host) {
-    transporter = null;
-    return null;
+
+  if (gmailConfigured()) {
+    const sender = process.env.GMAIL_SENDER_EMAIL as string;
+    const name = process.env.GMAIL_SENDER_NAME || "Keystone Procurement";
+    fromAddress = `${name} <${sender}>`;
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        type: "OAuth2",
+        user: sender,
+        clientId: process.env.GMAIL_OAUTH_CLIENT_ID,
+        clientSecret: process.env.GMAIL_OAUTH_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_OAUTH_REFRESH_TOKEN,
+      },
+    });
+    return transporter;
   }
-  transporter = nodemailer.createTransport({
-    host,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-  return transporter;
+
+  const host = process.env.SMTP_HOST;
+  if (host) {
+    fromAddress = process.env.MAIL_FROM ?? "Keystone Procurement";
+    transporter = nodemailer.createTransport({
+      host,
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    return transporter;
+  }
+
+  transporter = null;
+  return null;
 }
 
 export interface MailAttachment {
@@ -41,7 +73,7 @@ export async function sendMail(opts: {
   }
   try {
     await t.sendMail({
-      from: process.env.MAIL_FROM ?? "Keystone Procurement",
+      from: fromAddress,
       to: opts.to,
       subject: opts.subject,
       text: opts.text,

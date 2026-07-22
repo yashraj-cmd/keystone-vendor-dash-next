@@ -25,8 +25,20 @@ export interface LoginResponse {
 export const authApi = {
   login: (email: string, password: string) =>
     api.post<LoginResponse>("/auth/login", { email, password }).then((r) => r.data),
+  requestOtp: (email: string) =>
+    api.post<{ sent: boolean }>("/auth/otp/request", { email }).then((r) => r.data),
+  verifyOtp: (email: string, code: string) =>
+    api.post<LoginResponse>("/auth/otp/verify", { email, code }).then((r) => r.data),
   me: () => api.get<UserDto>("/auth/me").then((r) => r.data),
   logout: (refreshToken: string) => api.post("/auth/logout", { refreshToken }),
+};
+
+// ── team / users (admin only) ───────────────────────────────────────────────────
+export const usersApi = {
+  list: () => api.get<UserDto[]>("/users").then((r) => r.data),
+  create: (input: { email: string; name?: string; role: UserDto["role"] }) =>
+    api.post<UserDto>("/users", input).then((r) => r.data),
+  remove: (id: string) => api.delete(`/users/${id}`).then((r) => r.data),
 };
 
 // ── vendors ───────────────────────────────────────────────────────────────────

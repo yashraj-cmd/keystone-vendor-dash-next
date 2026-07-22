@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/auth-store";
 import { authApi } from "@/lib/api";
+import { TeamModal } from "@/features/team/TeamModal";
 
 export function Header() {
   const user = useAuthStore((s) => s.user);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const clear = useAuthStore((s) => s.clear);
+  const [teamOpen, setTeamOpen] = useState(false);
 
   async function signOut() {
     try {
@@ -49,11 +52,17 @@ export function Header() {
               <div className="text-[10px] uppercase tracking-wider text-muted">{user.role}</div>
             </div>
           )}
+          {user?.role === "ADMIN" && (
+            <button className="btn" onClick={() => setTeamOpen(true)}>
+              Team
+            </button>
+          )}
           <button className="btn" onClick={signOut}>
             Sign out
           </button>
         </div>
       </div>
+      {teamOpen && <TeamModal onClose={() => setTeamOpen(false)} />}
     </header>
   );
 }

@@ -250,3 +250,16 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// One-time login codes for passwordless (email OTP) sign-in.
+model LoginOtp {
+  id        String   @id @default(uuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("login_otps")
+}
