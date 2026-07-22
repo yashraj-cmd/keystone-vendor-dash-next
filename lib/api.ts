@@ -230,6 +230,24 @@ export const purchaseOrdersApi = {
     api.post<PurchaseOrderDto>(`/purchase-orders/${id}/approve`).then((r) => r.data),
   reject: (id: string, reason: string) =>
     api.post<PurchaseOrderDto>(`/purchase-orders/${id}/reject`, { reason }).then((r) => r.data),
+  /**
+   * Open a PO's PDF in a new tab. Approved POs return the Zoho PDF; pending ones
+   * return a generated PDF. Opens the tab synchronously (before the await) so the
+   * browser's popup blocker doesn't kill it.
+   */
+  viewPdf: async (id: string) => {
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const res = await api.get(`/purchase-orders/${id}/pdf`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data as Blob);
+      if (tab && !tab.closed) tab.location.href = url;
+      else window.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      if (tab && !tab.closed) tab.close();
+      throw err;
+    }
+  },
 };
 
 // ── dashboard ─────────────────────────────────────────────────────────────────

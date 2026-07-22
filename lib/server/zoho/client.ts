@@ -99,6 +99,20 @@ export async function fetchInvoicePdf(zohoId: string, isRetry = false): Promise<
   return Buffer.from(await res.arrayBuffer());
 }
 
+export async function fetchPurchaseOrderPdf(zohoId: string, isRetry = false): Promise<Buffer> {
+  const token = await getAccessToken();
+  const params = new URLSearchParams({ accept: "pdf", organization_id: organizationId() });
+  const res = await fetch(`${apiBase()}/purchaseorders/${zohoId}?${params.toString()}`, {
+    headers: { Authorization: `Zoho-oauthtoken ${token}` },
+  });
+  if (res.status === 401 && !isRetry) {
+    invalidateToken();
+    return fetchPurchaseOrderPdf(zohoId, true);
+  }
+  if (!res.ok) throw new Error(`Zoho PO PDF fetch failed (${res.status}) for ${zohoId}.`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
 export async function createInvoice(input: {
   customerId: string;
   date?: string;

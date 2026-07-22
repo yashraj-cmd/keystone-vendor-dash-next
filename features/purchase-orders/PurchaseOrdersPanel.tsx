@@ -5,8 +5,6 @@ import type { PurchaseOrderDto, PurchaseOrderStatus } from "@shared";
 import { purchaseOrdersApi } from "@/lib/api";
 import { apiError } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/auth-store";
-import { Modal } from "@/components/Modal";
-import { formatDate } from "@/lib/format";
 
 const STATUS_CHIP: Record<PurchaseOrderStatus, string> = {
   PENDING: "bg-keystone-amber/15 text-keystone-amber",
@@ -18,84 +16,19 @@ function inr(n: number) {
   return `₹${(n ?? 0).toLocaleString("en-IN")}`;
 }
 
-function PoDetailModal({ po, onClose }: { po: PurchaseOrderDto; onClose: () => void }) {
-  const items = po.lineItems ?? [];
-  return (
-    <Modal title={`Purchase Order — ${po.vendorName ?? "Vendor"}`} onClose={onClose}>
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <div>
-            <span className="label">Status</span>
-            <div>
-              <span className={`chip ${STATUS_CHIP[po.status]}`}>{po.status.toLowerCase()}</span>
-            </div>
-          </div>
-          <div>
-            <span className="label">PO number</span>
-            <div>{po.poNumber || "—"}</div>
-          </div>
-          <div>
-            <span className="label">Submitted</span>
-            <div>{formatDate(po.createdAt)}</div>
-          </div>
-          <div>
-            <span className="label">In Zoho</span>
-            <div>{po.zohoId ? "Yes ✓" : "Not yet"}</div>
-          </div>
-        </div>
-
-        <div>
-          <span className="label">Items</span>
-          <div className="overflow-x-auto mt-1">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted border-b border-border">
-                  <th className="py-1 font-medium">Product</th>
-                  <th className="py-1 font-medium">HSN</th>
-                  <th className="py-1 font-medium text-right">Qty</th>
-                  <th className="py-1 font-medium text-right">Price</th>
-                  <th className="py-1 font-medium text-right">Line total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((li, i) => (
-                  <tr key={i} className="border-b border-border">
-                    <td className="py-1.5">{li.name}</td>
-                    <td className="py-1.5">{li.hsn || "—"}</td>
-                    <td className="py-1.5 text-right tabular-nums">{li.quantity}</td>
-                    <td className="py-1.5 text-right tabular-nums">{inr(li.rate)}</td>
-                    <td className="py-1.5 text-right tabular-nums">{inr(li.rate * li.quantity)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={4} className="py-2 text-right font-semibold">
-                    Total
-                  </td>
-                  <td className="py-2 text-right font-semibold tabular-nums">{inr(po.total)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        {po.status === "REJECTED" && po.decisionReason && (
-          <div className="text-sm text-keystone-red">
-            <span className="label block">Rejection reason</span>
-            {po.decisionReason}
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
+/** Open a PO's PDF in a new tab (Zoho PDF if approved, generated PDF if pending). */
+async function openPoPdf(id: string) {
+  try {
+    await purchaseOrdersApi.viewPdf(id);
+  } catch (err) {
+    toast.error(apiError(err, "Could not open the PO PDF"));
+  }
 }
 
 export function PurchaseOrdersPanel() {
   const qc = useQueryClient();
   const role = useAuthStore((s) => s.user?.role);
   const isAdmin = role === "ADMIN";
-  const [viewing, setViewing] = useState<PurchaseOrderDto | null>(null);
   const [showAll, setShowAll] = useState(false);
   const VISIBLE_LIMIT = 5;
 
@@ -145,7 +78,7 @@ export function PurchaseOrdersPanel() {
             key={po.id}
             po={po}
             isAdmin={isAdmin}
-            onView={() => setViewing(po)}
+            onView={() => openPoPdf(po.id)}
             onApprove={() => approve.mutate(po.id)}
             onReject={(reason) => reject.mutate({ id: po.id, reason })}
             busy={approve.isPending || reject.isPending}
@@ -159,7 +92,6 @@ export function PurchaseOrdersPanel() {
           </button>
         </div>
       )}
-      {viewing && <PoDetailModal po={viewing} onClose={() => setViewing(null)} />}
     </section>
   );
 }

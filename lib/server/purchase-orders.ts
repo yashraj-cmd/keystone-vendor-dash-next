@@ -4,6 +4,7 @@ import { audit } from "./audit";
 import { sendMail } from "./mail";
 import { createZohoPurchaseOrder } from "./zoho";
 import { buildPoPdf } from "./po-pdf";
+import { fetchPurchaseOrderPdf } from "./zoho/client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -24,6 +25,31 @@ function serialize(po: any) {
     updatedAt: po.updatedAt.toISOString(),
     vendor: undefined,
   };
+}
+
+/**
+ * PDF for a purchase order. If it's been approved and exists in Zoho, return the
+ * official Zoho PO PDF; otherwise generate one from our own data (pending POs).
+ */
+export async function getPurchaseOrderPdf(id: string): Promise<Buffer> {
+  const po = await prisma.purchaseOrder.findUnique({ where: { id }, include: { vendor: true } });
+  if (!po) throw new HttpError(404, "Purchase order not found.");
+
+  if (po.zohoId && process.env.ZOHO_ENABLED === "true") {
+    try {
+      return await fetchPurchaseOrderPdf(po.zohoId);
+    } catch (err) {
+      // Fall back to our own rendering if Zoho can't produce it right now.
+      console.warn(`[po] Zoho PDF unavailable for ${id}, using generated PDF: ${(err as Error).message}`);
+    }
+  }
+
+  return buildPoPdf({
+    vendorName: po.vendor.name,
+    poNumber: po.poNumber,
+    createdAt: po.createdAt,
+    lineItems: (po.lineItems as any[]) ?? [],
+  });
 }
 
 /**
