@@ -43,9 +43,11 @@ export function DriveBanner() {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-rust-dark">{title}</p>
           <p className="text-xs text-muted">
-            Drop a vendor's catalogue in the Drive folder, named{" "}
-            <span className="font-mono">"Vendor Name - Catalogue - …"</span>, and it links to that
-            vendor automatically. (Invoices come from Zoho or manual entry, not Drive.)
+            Catalogue PDFs added to your Drive folder link to the matching vendor automatically.
+          </p>
+          <p className="text-[11px] text-muted/80 mt-0.5">
+            Tip: name the file starting with the vendor’s name, e.g.{" "}
+            <span className="font-mono">Acme - Catalogue.pdf</span>
           </p>
         </div>
         <div className="flex items-center gap-3 whitespace-nowrap">
