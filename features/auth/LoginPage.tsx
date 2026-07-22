@@ -10,8 +10,8 @@ import { useAuthStore } from "@/lib/auth-store";
 export function LoginPage() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
-  const [email, setEmail] = useState("admin@keystonecommerce.in");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -65,9 +65,6 @@ export function LoginPage() {
           <button type="submit" className="btn-primary w-full" disabled={busy}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
-          <p className="text-xs text-muted text-center">
-            Seed credentials: admin@keystonecommerce.in / admin123
-          </p>
         </form>
       </div>
     </div>
