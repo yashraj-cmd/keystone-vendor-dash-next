@@ -67,7 +67,11 @@ export function ZohoBanner() {
               : "Not synced yet this session."}
           </p>
         </div>
-        <button className="btn-primary" onClick={() => sync.mutate()} disabled={sync.isPending}>
+        <button
+          className="btn-primary min-w-[140px]"
+          onClick={() => sync.mutate()}
+          disabled={sync.isPending}
+        >
           {sync.isPending ? "Syncing…" : "Sync invoices"}
         </button>
       </div>

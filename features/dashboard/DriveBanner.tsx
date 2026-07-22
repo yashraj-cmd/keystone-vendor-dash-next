@@ -61,7 +61,11 @@ export function DriveBanner() {
               Open Drive folder ↗
             </a>
           )}
-          <button className="btn-primary" onClick={() => sync.mutate()} disabled={sync.isPending}>
+          <button
+            className="btn-primary min-w-[140px]"
+            onClick={() => sync.mutate()}
+            disabled={sync.isPending}
+          >
             {sync.isPending ? "Syncing…" : "Sync Drive"}
           </button>
         </div>
