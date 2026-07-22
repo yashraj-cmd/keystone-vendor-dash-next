@@ -89,6 +89,10 @@ export function VendorForm({ vendor, onClose }: Props) {
       className="grid grid-cols-1 md:grid-cols-2 gap-4"
       onSubmit={(e) => {
         e.preventDefault();
+        if (phone && phone.length !== 10) {
+          toast.error("Phone number must be exactly 10 digits.");
+          return;
+        }
         mutation.mutate();
       }}
     >
@@ -120,7 +124,16 @@ export function VendorForm({ vendor, onClose }: Props) {
       </label>
       <label className="block">
         <span className="label">Phone</span>
-        <input className="input mt-1" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <input
+          className="input mt-1"
+          type="tel"
+          inputMode="numeric"
+          maxLength={10}
+          placeholder="10-digit number"
+          value={phone}
+          // Keep digits only and never allow more than 10.
+          onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+        />
       </label>
       <label className="block">
         <span className="label">Email</span>
