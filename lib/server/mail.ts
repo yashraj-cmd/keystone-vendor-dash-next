@@ -20,15 +20,23 @@ function getTransporter(): Transporter | null {
   return transporter;
 }
 
+export interface MailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 /** Send an email. Never throws — a failed notification must not break the caller. */
 export async function sendMail(opts: {
   to: string;
   subject: string;
   text: string;
+  attachments?: MailAttachment[];
 }): Promise<boolean> {
   const t = getTransporter();
   if (!t) {
-    console.log(`[dev email] to=${opts.to} subject="${opts.subject}"\n${opts.text}`);
+    const att = opts.attachments?.length ? ` [${opts.attachments.length} attachment(s)]` : "";
+    console.log(`[dev email] to=${opts.to} subject="${opts.subject}"${att}\n${opts.text}`);
     return false;
   }
   try {
@@ -37,6 +45,7 @@ export async function sendMail(opts: {
       to: opts.to,
       subject: opts.subject,
       text: opts.text,
+      attachments: opts.attachments,
     });
     console.log(`[mail] sent to ${opts.to}: "${opts.subject}"`);
     return true;

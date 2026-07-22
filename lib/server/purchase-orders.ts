@@ -3,6 +3,7 @@ import { HttpError } from "./auth";
 import { audit } from "./audit";
 import { sendMail } from "./mail";
 import { createZohoPurchaseOrder } from "./zoho";
+import { buildPoPdf } from "./po-pdf";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -80,13 +81,31 @@ export async function createPurchaseOrder(
 
   const approver = (process.env.PO_APPROVER_EMAIL ?? "").trim();
   if (approver) {
+    // Generate the PO as a PDF from our own data so the approver can review the
+    // full order before it's approved / created in Zoho. Soft-fail: if the PDF
+    // can't be built, still send the email without the attachment.
+    let attachments;
+    try {
+      const pdf = await buildPoPdf({
+        vendorName: vendor.name,
+        poNumber: po.poNumber,
+        createdAt: po.createdAt,
+        lineItems: dto.lineItems,
+      });
+      const fileLabel = (po.poNumber || `PO-${po.id.slice(0, 8)}`).replace(/[^\w.-]/g, "_");
+      attachments = [{ filename: `${fileLabel}.pdf`, content: pdf, contentType: "application/pdf" }];
+    } catch (err) {
+      console.warn(`[po] PDF generation failed for ${po.id}: ${(err as Error).message}`);
+    }
     await sendMail({
       to: approver,
       subject: `PO approval needed — ${vendor.name} (₹${total.toLocaleString("en-IN")})`,
       text:
         `A new Purchase Order request awaits your approval in the Vendor Dashboard.\n\n` +
         `Vendor: ${vendor.name}\nItems: ${dto.lineItems.length}\nTotal: ₹${total.toLocaleString("en-IN")}\n\n` +
+        `The full purchase order is attached as a PDF for your review.\n\n` +
         `Log in to Approve or Reject it:\n${appUrl()}\n`,
+      attachments,
     });
   }
   return serialize(po);
