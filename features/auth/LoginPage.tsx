@@ -44,16 +44,17 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center px-4 py-12">
-      <div className="card w-full max-w-sm p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-keystone bg-orange text-white grid place-items-center font-bold">
+    <div className="min-h-screen w-full flex items-center justify-center p-4">
+      <div className="card w-full max-w-sm p-8 shadow-xl border border-border">
+        <div className="flex flex-col items-center text-center mb-7">
+          <div className="w-14 h-14 rounded-keystone bg-orange text-white grid place-items-center font-bold text-2xl shadow-sm">
             K
           </div>
-          <div>
-            <div className="text-xs tracking-widest text-muted">KEYSTONE COMMERCE</div>
-            <div className="text-base font-semibold">Vendor Dashboard</div>
-          </div>
+          <div className="text-[11px] tracking-[0.22em] text-muted mt-3">KEYSTONE COMMERCE</div>
+          <div className="text-lg font-bold leading-tight">Vendor Dashboard</div>
+          <p className="text-xs text-muted mt-1">
+            Sign in to manage vendors, catalogues &amp; purchase orders
+          </p>
         </div>
 
         {step === "email" ? (
