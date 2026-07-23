@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { InvoiceStatus, UserRole, VendorCategory, VendorStatus } from "./enums";
+import { InvoiceStatus, UserRole, VENDOR_CATEGORIES, VendorStatus } from "./enums";
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -18,12 +18,12 @@ export type CreateUserInput = z.infer<typeof createUserSchema>;
 export const updateUserSchema = createUserSchema.partial();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
-export const vendorCategoryValues = Object.values(VendorCategory) as [string, ...string[]];
+export const vendorCategoryValues = [...VENDOR_CATEGORIES] as [string, ...string[]];
 export const vendorStatusValues = Object.values(VendorStatus) as [string, ...string[]];
 
 export const createVendorSchema = z.object({
   name: z.string().min(1, "Vendor name is required"),
-  category: z.nativeEnum(VendorCategory),
+  category: z.enum(vendorCategoryValues),
   status: z.nativeEnum(VendorStatus).default(VendorStatus.ACTIVE),
   contactName: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),

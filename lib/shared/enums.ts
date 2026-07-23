@@ -18,26 +18,48 @@ export const VendorStatus = {
 } as const;
 export type VendorStatus = (typeof VendorStatus)[keyof typeof VendorStatus];
 
-export const VendorCategory = {
-  RAW_MATERIALS: "RAW_MATERIALS",
-  LOGISTICS: "LOGISTICS",
-  IT_SERVICES: "IT_SERVICES",
-  PACKAGING: "PACKAGING",
-  CONSULTING: "CONSULTING",
-  OFFICE_SUPPLIES: "OFFICE_SUPPLIES",
-  MARKETING: "MARKETING",
-} as const;
-export type VendorCategory = (typeof VendorCategory)[keyof typeof VendorCategory];
+/**
+ * Vendor categories are a code-managed list (the stored value === the display
+ * label), so they can be edited here without a database migration. The DB column
+ * is a plain string. To add/remove a category, just edit this array.
+ */
+export const VENDOR_CATEGORIES = [
+  "Electronics",
+  "Personal Use",
+  "Tools",
+  "Vehicle Care",
+  "Health and Safety",
+  "Home and Family",
+  "Grooming and Hygiene",
+  "Daily Carry",
+  "Driver Apparel",
+  "Driver Comfort & Climate",
+  "Personal Electronics",
+  "Home Essentials",
+  "Kitchen Appliances",
+  "Major Appliances",
+  "Cleaning Essentials",
+  "Cloths & Brushes",
+  "Crockeries",
+  "Furniture",
+  "Winter Essentials",
+  "Vehicle Gadgets",
+  "Vehicle Interior",
+  "Vehicle Maintenance & Care",
+  "Bike Accessories",
+  "Bike Maintenance & Care",
+  "Bike Comfort",
+  "Car Comfort",
+  "Small Home Appliances",
+  "Home Appliances",
+] as const;
 
-export const VENDOR_CATEGORY_LABELS: Record<VendorCategory, string> = {
-  RAW_MATERIALS: "Raw Materials",
-  LOGISTICS: "Logistics",
-  IT_SERVICES: "IT Services",
-  PACKAGING: "Packaging",
-  CONSULTING: "Consulting",
-  OFFICE_SUPPLIES: "Office Supplies",
-  MARKETING: "Marketing",
-};
+export type VendorCategory = (typeof VENDOR_CATEGORIES)[number];
+
+/** Kept for existing consumers; value === label, keys preserve list order. */
+export const VENDOR_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  VENDOR_CATEGORIES.map((c) => [c, c]),
+);
 
 export const InvoiceStatus = {
   PAID: "PAID",

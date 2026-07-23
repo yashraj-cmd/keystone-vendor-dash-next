@@ -28,15 +28,6 @@ enum VendorStatus {
   BLACKLISTED
 }
 
-enum VendorCategory {
-  RAW_MATERIALS
-  LOGISTICS
-  IT_SERVICES
-  PACKAGING
-  CONSULTING
-  OFFICE_SUPPLIES
-  MARKETING
-}
 
 enum InvoiceStatus {
   PAID
@@ -73,7 +64,7 @@ model User {
 model Vendor {
   id             String         @id @default(uuid())
   name           String
-  category       VendorCategory
+  category       String
   stage          VendorStage    @default(IN_TALKS)
   status         VendorStatus   @default(ACTIVE)
   contactName    String?

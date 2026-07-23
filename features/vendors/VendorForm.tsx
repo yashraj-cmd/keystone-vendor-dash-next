@@ -20,7 +20,7 @@ export function VendorForm({ vendor, onClose }: Props) {
   const isEdit = Boolean(vendor);
 
   const [name, setName] = useState(vendor?.name ?? "");
-  const [category, setCategory] = useState<VendorCategory>(vendor?.category ?? "RAW_MATERIALS");
+  const [category, setCategory] = useState<VendorCategory>(vendor?.category ?? "Electronics");
   const [contactName, setContactName] = useState(vendor?.contactName ?? "");
   const [phone, setPhone] = useState(vendor?.phone ?? "");
   const [email, setEmail] = useState(vendor?.email ?? "");
