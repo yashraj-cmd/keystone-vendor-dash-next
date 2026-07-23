@@ -3,7 +3,7 @@ import { DocumentSource } from "@shared";
 import { handle } from "@/lib/server/http";
 import { requireRole, HttpError } from "@/lib/server/auth";
 import { prisma } from "@/lib/prisma";
-import { uploadOnBehalfOfVendor } from "@/lib/server/drive/service";
+import { uploadToVendorsCatalog, driveOAuthConfigured } from "@/lib/server/drive/vendors-catalog";
 import { attachCatalogue } from "@/lib/server/catalogues";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -20,37 +20,33 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!(file instanceof File)) throw new HttpError(400, "Please choose a file to upload.");
     if (file.size > MAX_BYTES) throw new HttpError(413, "File is too large (max 15 MB).");
 
+    if (!driveOAuthConfigured()) {
+      throw new HttpError(503, "Drive uploads aren't configured (GOOGLE_DRIVE_* env vars missing).");
+    }
+
     const title = String(form.get("title") ?? "").trim();
     const rename = String(form.get("filename") ?? "").trim();
 
     // Respect the user's chosen name; keep the original extension if they left it off.
     const ext = file.name.match(/\.[a-z0-9]+$/i)?.[0] ?? "";
-    const originalFilename = rename
+    const chosen = rename
       ? /\.[a-z0-9]+$/i.test(rename)
         ? rename
         : rename + ext
       : file.name;
+    // Prefix the vendor name for a readable, self-describing Drive filename.
+    const fileName = `${vendor.name.trim()} - ${chosen}`;
 
     const data = Buffer.from(await file.arrayBuffer());
     let uploaded;
     try {
-      uploaded = await uploadOnBehalfOfVendor({
-        vendorName: vendor.name,
-        kind: "catalogue",
-        uploadedAt: new Date(),
-        originalFilename,
+      uploaded = await uploadToVendorsCatalog({
+        fileName,
         mimeType: file.type || "application/octet-stream",
         data,
       });
     } catch (err) {
-      const msg = (err as Error).message || "";
-      if (/permission/i.test(msg)) {
-        throw new HttpError(
-          502,
-          "Google Drive denied the upload. The Drive folder must be shared with the service account as an Editor.",
-        );
-      }
-      throw new HttpError(502, `Drive upload failed: ${msg}`);
+      throw new HttpError(502, `Drive upload failed: ${(err as Error).message}`);
     }
 
     return attachCatalogue(
