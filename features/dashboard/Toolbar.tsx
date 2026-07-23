@@ -1,11 +1,8 @@
 import { toast } from "sonner";
-import {
-  VENDOR_CATEGORY_LABELS,
-  VendorCategory,
-  VendorStage,
-} from "@shared";
+import { VENDOR_CATEGORIES, VendorCategory, VendorStage } from "@shared";
 import { vendorsApi, VendorQuery } from "@/lib/api";
 import { apiError } from "@/lib/api-client";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 interface Props {
   query: VendorQuery;
@@ -44,30 +41,27 @@ export function Toolbar({ query, onQueryChange, onAddVendor, onGeneratePo }: Pro
         value={query.search ?? ""}
         onChange={(e) => onQueryChange({ search: e.target.value })}
       />
-      <select
-        className="input max-w-[180px]"
+      <SearchableSelect
+        className="w-[200px]"
         value={query.category ?? ""}
-        onChange={(e) => onQueryChange({ category: (e.target.value || "") as VendorCategory | "" })}
-      >
-        <option value="">All Categories</option>
-        {(Object.keys(VENDOR_CATEGORY_LABELS) as VendorCategory[]).map((c) => (
-          <option key={c} value={c}>
-            {VENDOR_CATEGORY_LABELS[c]}
-          </option>
-        ))}
-      </select>
-      <select
-        className="input max-w-[180px]"
+        onChange={(v) => onQueryChange({ category: v as VendorCategory | "" })}
+        options={VENDOR_CATEGORIES}
+        allowEmpty
+        emptyLabel="All Categories"
+        placeholder="All Categories"
+      />
+      <SearchableSelect
+        className="w-[180px]"
         value={query.stage ?? ""}
-        onChange={(e) => onQueryChange({ stage: (e.target.value || "") as VendorStage | "" })}
-      >
-        <option value="">All Stages</option>
-        {(Object.keys(STAGE_LABELS) as VendorStage[]).map((s) => (
-          <option key={s} value={s}>
-            {STAGE_LABELS[s]}
-          </option>
-        ))}
-      </select>
+        onChange={(v) => onQueryChange({ stage: v as VendorStage | "" })}
+        options={(Object.keys(STAGE_LABELS) as VendorStage[]).map((s) => ({
+          value: s,
+          label: STAGE_LABELS[s],
+        }))}
+        allowEmpty
+        emptyLabel="All Stages"
+        placeholder="All Stages"
+      />
       <div className="flex-1" />
       <button className="btn" onClick={onExport}>
         Export CSV

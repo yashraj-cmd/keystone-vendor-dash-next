@@ -83,7 +83,6 @@ function CataloguesTab({
 }) {
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
-  const [viewUrl, setViewUrl] = useState("");
   const [rows, setRows] = useState<CatItemRow[]>([emptyItemRow()]);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [renameTo, setRenameTo] = useState("");
@@ -103,14 +102,12 @@ function CataloguesTab({
         }));
       return cataloguesApi.attach(vendorId, {
         title,
-        viewUrl: viewUrl || undefined,
         items: items.length ? items : undefined,
       });
     },
     onSuccess: () => {
       toast.success("Catalogue added.");
       setTitle("");
-      setViewUrl("");
       setRows([emptyItemRow()]);
       qc.invalidateQueries();
     },
@@ -238,16 +235,10 @@ function CataloguesTab({
         }}
       >
         <div className="text-xs text-muted -mb-1">Or add a catalogue manually:</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
-          <label className="block md:col-span-2">
-            <span className="label">Catalogue title</span>
-            <input className="input mt-1" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </label>
-          <label className="block">
-            <span className="label">PDF / link (optional)</span>
-            <input className="input mt-1" value={viewUrl} onChange={(e) => setViewUrl(e.target.value)} placeholder="Drive/PDF link" />
-          </label>
-        </div>
+        <label className="block">
+          <span className="label">Catalogue title</span>
+          <input className="input mt-1" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        </label>
 
         <div>
           <div className="flex items-center justify-between mb-1">

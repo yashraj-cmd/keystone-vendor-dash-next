@@ -4,6 +4,7 @@ import { HttpError } from "../auth";
 import { audit } from "../audit";
 import { attachCatalogue } from "../catalogues";
 import { getDriveClient } from "./client-factory";
+import { driveOAuthConfigured } from "./vendors-catalog";
 import { normalizeToken, parseDriveFilename } from "./filename";
 import { matchDriveVendor } from "./matcher";
 import type { DriveFile, DriveUploadInput } from "./types";
@@ -15,10 +16,10 @@ interface SyncResult {
   errors: number;
 }
 
-/** Connection info for the UI banner. */
+/** Connection info for the UI banner (reflects the OAuth "Vendors Catalog" setup). */
 export function getStatus() {
-  const enabled = process.env.DRIVE_ENABLED === "true";
-  const folderId = process.env.DRIVE_CATALOGUES_FOLDER_ID || "";
+  const enabled = driveOAuthConfigured();
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
   return {
     enabled,
     folderUrl: folderId ? `https://drive.google.com/drive/folders/${folderId}` : null,

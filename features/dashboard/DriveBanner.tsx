@@ -18,23 +18,12 @@ export function DriveBanner() {
     queryFn: driveApi.unassigned,
   });
 
-  const sync = useMutation({
-    mutationFn: () => driveApi.sync(),
-    onSuccess: (res) => {
-      toast.success(
-        `Sync done — attached ${res.attached}, unassigned ${res.unassigned}, skipped ${res.skipped}.`,
-      );
-      qc.invalidateQueries();
-    },
-    onError: (err) => toast.error(apiError(err, "Drive sync failed")),
-  });
-
   const dotClass = status?.enabled ? "bg-keystone-green" : "bg-keystone-amber";
   const title = !status
     ? "Checking Google Drive…"
     : status.enabled
       ? "Google Drive is connected"
-      : "Google Drive — demo mode (no live folder connected)";
+      : "Google Drive is not configured";
 
   return (
     <div className="card bg-orange-light border-orange/30 p-4">
@@ -43,11 +32,8 @@ export function DriveBanner() {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-rust-dark">{title}</p>
           <p className="text-xs text-muted">
-            Catalogue PDFs added to your Drive folder link to the matching vendor automatically.
-          </p>
-          <p className="text-[11px] text-muted/80 mt-0.5">
-            Tip: name the file starting with the vendor’s name, e.g.{" "}
-            <span className="font-mono">Acme - Catalogue.pdf</span>
+            Catalogues you upload from a vendor’s page are saved to the Vendors Catalog folder
+            automatically.
           </p>
         </div>
         <div className="flex items-center gap-3 whitespace-nowrap">
@@ -61,13 +47,6 @@ export function DriveBanner() {
               Open Drive folder ↗
             </a>
           )}
-          <button
-            className="btn-primary min-w-[140px]"
-            onClick={() => sync.mutate()}
-            disabled={sync.isPending}
-          >
-            {sync.isPending ? "Syncing…" : "Sync Drive"}
-          </button>
         </div>
       </div>
       {unassigned.length > 0 && (
