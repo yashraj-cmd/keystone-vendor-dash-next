@@ -85,6 +85,8 @@ function CataloguesTab({
   const [title, setTitle] = useState("");
   const [viewUrl, setViewUrl] = useState("");
   const [rows, setRows] = useState<CatItemRow[]>([emptyItemRow()]);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [renameTo, setRenameTo] = useState("");
 
   const updateRow = (i: number, patch: Partial<CatItemRow>) =>
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -113,6 +115,24 @@ function CataloguesTab({
       qc.invalidateQueries();
     },
     onError: (err) => toast.error(apiError(err, "Attach failed")),
+  });
+
+  const upload = useMutation({
+    mutationFn: () => {
+      if (!uploadFile) throw new Error("Choose a file first.");
+      const name = renameTo.trim();
+      return cataloguesApi.upload(vendorId, uploadFile, {
+        title: name || uploadFile.name,
+        filename: name || undefined,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Catalogue uploaded to Drive & attached.");
+      setUploadFile(null);
+      setRenameTo("");
+      qc.invalidateQueries();
+    },
+    onError: (err) => toast.error(apiError(err, "Upload failed")),
   });
 
   const remove = useMutation({
@@ -173,6 +193,43 @@ function CataloguesTab({
         ))}
       </ul>
 
+      {/* Upload a catalogue file straight into the vendor's Drive folder */}
+      <div className="rounded-keystone border border-border p-3 space-y-2">
+        <div className="text-sm font-medium">Upload a catalogue file to Drive</div>
+        <p className="text-xs text-muted">
+          Pick a PDF, optionally rename it, and it's saved to the Drive folder and attached to this
+          vendor automatically.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+          <label className="block">
+            <span className="label">File</span>
+            <input
+              className="input mt-1 py-1.5 file:mr-2 file:rounded file:border-0 file:bg-orange-light file:px-2 file:py-1 file:text-xs file:text-orange-deep"
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <label className="block">
+            <span className="label">Rename (optional)</span>
+            <input
+              className="input mt-1"
+              placeholder={uploadFile ? uploadFile.name : "e.g. Acme price list"}
+              value={renameTo}
+              onChange={(e) => setRenameTo(e.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={!uploadFile || upload.isPending}
+            onClick={() => upload.mutate()}
+          >
+            {upload.isPending ? "Uploading…" : "Upload to Drive"}
+          </button>
+        </div>
+      </div>
+
       <form
         className="space-y-3 pt-3 border-t border-border"
         onSubmit={(e) => {
@@ -180,6 +237,7 @@ function CataloguesTab({
           attach.mutate();
         }}
       >
+        <div className="text-xs text-muted -mb-1">Or add a catalogue manually:</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
           <label className="block md:col-span-2">
             <span className="label">Catalogue title</span>

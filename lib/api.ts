@@ -107,6 +107,19 @@ export const cataloguesApi = {
       items?: CatalogueItemInput[];
     },
   ) => api.post<CatalogueDto>(`/vendors/${vendorId}/catalogues`, input).then((r) => r.data),
+  /** Upload a catalogue file to Google Drive and attach it. `filename` is an optional rename. */
+  upload: (vendorId: string, file: File, opts: { title?: string; filename?: string } = {}) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (opts.title) fd.append("title", opts.title);
+    if (opts.filename) fd.append("filename", opts.filename);
+    return api
+      .post<CatalogueDto>(`/vendors/${vendorId}/catalogues/upload`, fd, {
+        // Let the browser set multipart/form-data with the correct boundary.
+        headers: { "Content-Type": undefined as unknown as string },
+      })
+      .then((r) => r.data);
+  },
   remove: (id: string) => api.delete(`/catalogues/${id}`),
   addItem: (catalogueId: string, input: CatalogueItemInput) =>
     api.post(`/catalogues/${catalogueId}/items`, input).then((r) => r.data),

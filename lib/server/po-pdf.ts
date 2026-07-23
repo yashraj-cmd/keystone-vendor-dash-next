@@ -63,35 +63,71 @@ export async function buildPoPdf(input: PoPdfInput): Promise<Buffer> {
   text("Status: PENDING APPROVAL", M, y, { size: 9, color: orange });
   y -= 28;
 
-  // Table header
-  const cols = { name: M, hsn: 300, qty: 370, rate: 430, total: 505 };
-  page.drawRectangle({ x: M - 6, y: y - 4, width: 595 - 2 * M + 12, height: 20, color: rgb(0.98, 0.93, 0.87) });
-  text("Product", cols.name, y, { size: 9, font: bold });
-  text("HSN", cols.hsn, y, { size: 9, font: bold });
-  text("Qty", cols.qty, y, { size: 9, font: bold });
-  text("Rate", cols.rate, y, { size: 9, font: bold });
-  text("Amount", cols.total, y, { size: 9, font: bold });
-  y -= 20;
+  // Right-aligned text (numeric columns line up on their right edge).
+  const rtext = (
+    s: string,
+    rightX: number,
+    yy: number,
+    opts: { size?: number; font?: typeof font; color?: typeof ink } = {},
+  ) => {
+    const size = opts.size ?? 10;
+    const f = opts.font ?? font;
+    page.drawText(s, {
+      x: rightX - f.widthOfTextAtSize(s, size),
+      y: yy,
+      size,
+      font: f,
+      color: opts.color ?? ink,
+    });
+  };
+
+  // Column geometry: left edges for text columns, right edges for numbers.
+  const nameX = M;
+  const hsnX = 296;
+  const qtyR = 388;
+  const rateR = 468;
+  const amtR = 595 - M; // 547 — right content edge
+
+  // Table header band
+  page.drawRectangle({
+    x: M - 6,
+    y: y - 5,
+    width: 595 - 2 * M + 12,
+    height: 20,
+    color: rgb(0.98, 0.93, 0.87),
+  });
+  text("Product", nameX, y, { size: 9, font: bold });
+  text("HSN", hsnX, y, { size: 9, font: bold });
+  rtext("Qty", qtyR, y, { size: 9, font: bold });
+  rtext("Rate", rateR, y, { size: 9, font: bold });
+  rtext("Amount", amtR, y, { size: 9, font: bold });
+  y -= 22;
 
   // Rows
   let total = 0;
   for (const li of input.lineItems) {
     const amt = (li.rate || 0) * (li.quantity || 0);
     total += amt;
-    const nameLine = li.name.length > 45 ? li.name.slice(0, 44) + "…" : li.name;
-    text(nameLine, cols.name, y);
-    text(li.hsn || "-", cols.hsn, y, { color: muted });
-    text(String(li.quantity), cols.qty, y);
-    text(inr(li.rate), cols.rate, y);
-    text(inr(amt), cols.total, y);
-    y -= 16;
-    page.drawLine({ start: { x: M - 6, y: y + 4 }, end: { x: 595 - M + 6, y: y + 4 }, thickness: 0.5, color: line });
+    const nameLine = li.name.length > 40 ? li.name.slice(0, 39) + "…" : li.name;
+    text(nameLine, nameX, y);
+    text(li.hsn || "-", hsnX, y, { color: muted });
+    rtext(String(li.quantity), qtyR, y);
+    rtext(inr(li.rate), rateR, y);
+    rtext(inr(amt), amtR, y);
+    y -= 9;
+    page.drawLine({
+      start: { x: M - 6, y },
+      end: { x: 595 - M + 6, y },
+      thickness: 0.5,
+      color: line,
+    });
+    y -= 11;
   }
 
   // Total
-  y -= 10;
-  text("Total", cols.rate, y, { font: bold });
-  text(inr(total), cols.total, y, { font: bold, color: orange });
+  y -= 6;
+  rtext("Total", rateR, y, { font: bold });
+  rtext(inr(total), amtR, y, { font: bold, color: orange });
 
   // Footer
   text(
