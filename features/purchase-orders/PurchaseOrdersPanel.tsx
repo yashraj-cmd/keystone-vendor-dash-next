@@ -5,6 +5,7 @@ import type { PurchaseOrderDto, PurchaseOrderStatus } from "@shared";
 import { purchaseOrdersApi } from "@/lib/api";
 import { apiError } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/auth-store";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 const STATUS_CHIP: Record<PurchaseOrderStatus, string> = {
   PENDING: "bg-keystone-amber/15 text-keystone-amber",
@@ -30,6 +31,8 @@ export function PurchaseOrdersPanel() {
   const role = useAuthStore((s) => s.user?.role);
   const isAdmin = role === "ADMIN";
   const [showAll, setShowAll] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"ALL" | PurchaseOrderStatus>("ALL");
+  const [search, setSearch] = useState("");
   const VISIBLE_LIMIT = 5;
 
   const { data: pos = [] } = useQuery({
@@ -38,6 +41,19 @@ export function PurchaseOrdersPanel() {
   });
 
   const pendingCount = pos.filter((p) => p.status === "PENDING").length;
+  const counts = {
+    ALL: pos.length,
+    PENDING: pendingCount,
+    APPROVED: pos.filter((p) => p.status === "APPROVED").length,
+    REJECTED: pos.filter((p) => p.status === "REJECTED").length,
+  };
+
+  const q = search.trim().toLowerCase();
+  const filtered = pos.filter((p) => {
+    if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
+    if (q && !`${p.vendorName ?? ""} ${p.poNumber ?? ""}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
 
   const approve = useMutation({
     mutationFn: (id: string) => purchaseOrdersApi.approve(id),
@@ -61,34 +77,63 @@ export function PurchaseOrdersPanel() {
   if (pos.length === 0) return null;
 
   return (
-    <section className="card overflow-hidden">
-      <div className="p-4 border-b border-border flex items-baseline justify-between">
+    <section className="card">
+      {/* Header with inline filters: title · search · status dropdown */}
+      <div className="p-4 border-b border-border flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-bold">Purchase Orders</h2>
-        <p className="text-xs text-muted">
-          {pendingCount} awaiting approval{isAdmin ? "" : " · Admin approves"}
-        </p>
+        <div className="flex-1" />
+        <input
+          className="input w-[200px] py-1.5"
+          placeholder="Search vendor or PO #…"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setShowAll(false);
+          }}
+        />
+        <SearchableSelect
+          className="w-[170px]"
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v as "ALL" | PurchaseOrderStatus);
+            setShowAll(false);
+          }}
+          options={[
+            { value: "ALL", label: `All (${counts.ALL})` },
+            { value: "PENDING", label: `Pending (${counts.PENDING})` },
+            { value: "APPROVED", label: `Approved (${counts.APPROVED})` },
+            { value: "REJECTED", label: `Rejected (${counts.REJECTED})` },
+          ]}
+        />
       </div>
-      <ul
-        className={`divide-y divide-border ${
-          showAll && pos.length > VISIBLE_LIMIT ? "max-h-[460px] overflow-y-auto" : ""
-        }`}
-      >
-        {(showAll ? pos : pos.slice(0, VISIBLE_LIMIT)).map((po) => (
-          <PoRow
-            key={po.id}
-            po={po}
-            isAdmin={isAdmin}
-            onView={() => openPoPdf(po.id)}
-            onApprove={() => approve.mutate(po.id)}
-            onReject={(reason) => reject.mutate({ id: po.id, reason })}
-            busy={approve.isPending || reject.isPending}
-          />
-        ))}
-      </ul>
-      {pos.length > VISIBLE_LIMIT && (
+
+      {filtered.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted">
+          No purchase orders match this filter.
+        </div>
+      ) : (
+        <ul
+          className={`divide-y divide-border ${
+            showAll && filtered.length > VISIBLE_LIMIT ? "max-h-[460px] overflow-y-auto" : ""
+          }`}
+        >
+          {(showAll ? filtered : filtered.slice(0, VISIBLE_LIMIT)).map((po) => (
+            <PoRow
+              key={po.id}
+              po={po}
+              isAdmin={isAdmin}
+              onView={() => openPoPdf(po.id)}
+              onApprove={() => approve.mutate(po.id)}
+              onReject={(reason) => reject.mutate({ id: po.id, reason })}
+              busy={approve.isPending || reject.isPending}
+            />
+          ))}
+        </ul>
+      )}
+      {filtered.length > VISIBLE_LIMIT && (
         <div className="p-3 border-t border-border text-center">
           <button className="btn py-1" onClick={() => setShowAll((v) => !v)}>
-            {showAll ? "Show less ▲" : `Show all ${pos.length} orders ▼`}
+            {showAll ? "Show less ▲" : `Show all ${filtered.length} orders ▼`}
           </button>
         </div>
       )}

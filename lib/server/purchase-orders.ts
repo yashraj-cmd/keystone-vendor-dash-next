@@ -67,10 +67,15 @@ const appUrl = () => {
 };
 
 /** Email the member who submitted a PO once it's decided (soft — never throws). */
-async function notifyCreator(createdById: string | null, subject: string, text: string) {
+async function notifyCreator(
+  createdById: string | null,
+  subject: string,
+  text: string,
+  attachments?: { filename: string; content: Buffer; contentType?: string }[],
+) {
   if (!createdById) return;
   const creator = await prisma.user.findUnique({ where: { id: createdById } });
-  if (creator?.email) await sendMail({ to: creator.email, subject, text });
+  if (creator?.email) await sendMail({ to: creator.email, subject, text, attachments });
 }
 
 export async function listPurchaseOrders(status?: string) {
@@ -172,11 +177,27 @@ export async function approvePurchaseOrder(id: string, actorUserId: string | nul
     include: { vendor: { select: { name: true } } },
   });
   await audit({ userId: actorUserId, action: "PO_APPROVE", entityType: "PurchaseOrder", entityId: id, metadata: { zohoId: result.zohoId, poNumber: result.poNumber } });
+
+  // Attach the approved PO PDF (Zoho's if available, else our generated one) to the
+  // creator's approval email. Soft-fail: still send the message if the PDF can't load.
+  let attachments;
+  try {
+    const pdf = await getPurchaseOrderPdf(id);
+    const label = (result.poNumber || po.poNumber || `PO-${id.slice(0, 8)}`).replace(/[^\w.-]/g, "_");
+    attachments = [{ filename: `${label}.pdf`, content: pdf, contentType: "application/pdf" }];
+  } catch (err) {
+    console.warn(`[po] approved PDF unavailable for ${id}: ${(err as Error).message}`);
+  }
   await notifyCreator(
     po.createdById,
-    `PO approved — ${po.vendor.name} (${result.poNumber})`,
-    `Your Purchase Order for ${po.vendor.name} (₹${po.total.toLocaleString("en-IN")}) has been approved` +
-      `${result.zohoId ? " and created in Zoho Books" : ""} as ${result.poNumber}.\n\n${appUrl()}\n`,
+    `✅ PO approved — ${po.vendor.name} (${result.poNumber})`,
+    `Good news — your Purchase Order has been APPROVED.\n\n` +
+      `Vendor: ${po.vendor.name}\n` +
+      `PO number: ${result.poNumber}\n` +
+      `Total: ₹${po.total.toLocaleString("en-IN")}\n` +
+      `${result.zohoId ? "It has been created in Zoho Books.\n" : ""}` +
+      `\nThe approved purchase order is attached as a PDF.\n\n${appUrl()}\n`,
+    attachments,
   );
   return serialize(updated);
 }

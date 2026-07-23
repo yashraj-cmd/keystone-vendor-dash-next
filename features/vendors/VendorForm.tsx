@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  VENDOR_CATEGORY_LABELS,
-  VendorCategory,
-  VendorDto,
-} from "@shared";
+import { VENDOR_CATEGORIES, VendorCategory, VendorDto } from "@shared";
 import { vendorsApi, zohoApi } from "@/lib/api";
 import { apiError } from "@/lib/api-client";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 interface Props {
   vendor?: VendorDto;
@@ -20,7 +17,7 @@ export function VendorForm({ vendor, onClose }: Props) {
   const isEdit = Boolean(vendor);
 
   const [name, setName] = useState(vendor?.name ?? "");
-  const [category, setCategory] = useState<VendorCategory>(vendor?.category ?? "RAW_MATERIALS");
+  const [category, setCategory] = useState<VendorCategory>(vendor?.category ?? "Electronics");
   const [contactName, setContactName] = useState(vendor?.contactName ?? "");
   const [phone, setPhone] = useState(vendor?.phone ?? "");
   const [email, setEmail] = useState(vendor?.email ?? "");
@@ -102,17 +99,14 @@ export function VendorForm({ vendor, onClose }: Props) {
       </label>
       <label className="block">
         <span className="label">Category</span>
-        <select
-          className="input mt-1"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as VendorCategory)}
-        >
-          {(Object.keys(VENDOR_CATEGORY_LABELS) as VendorCategory[]).map((c) => (
-            <option key={c} value={c}>
-              {VENDOR_CATEGORY_LABELS[c]}
-            </option>
-          ))}
-        </select>
+        <div className="mt-1">
+          <SearchableSelect
+            value={category}
+            onChange={(v) => setCategory(v as VendorCategory)}
+            options={VENDOR_CATEGORIES}
+            placeholder="Select a category"
+          />
+        </div>
       </label>
       <label className="block">
         <span className="label">Contact name</span>

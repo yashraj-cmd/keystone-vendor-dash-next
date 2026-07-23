@@ -127,7 +127,7 @@ export interface DashboardStatsDto {
   outstanding: number;
   contractsExpiring: number;
   pipeline: Record<VendorStage, number>;
-  contractValueByCategory: Record<VendorCategory, number>;
+  contractValueByCategory: Record<string, number>;
   invoiceStatusMix: Record<InvoiceStatus, number>;
   topVendorsByValue: { id: string; name: string; contractValue: number }[];
 }
